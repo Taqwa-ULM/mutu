@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Moderator Script - Mr. Taqwa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif; /* Menggunakan font yang lebih bulat dan ramah */
+            background-color: #f4f9f5; /* Soft green background */
+            color: #2d3748;
+            scroll-behavior: smooth;
+        }
+        
+        /* Hero Pattern Background to mimic illustration vibe */
+        .hero-bg {
+            background: linear-gradient(180deg, #d8ecd9 0%, #f4f9f5 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: -50px; left: -50px;
+            width: 300px; height: 300px;
+            background: #c3e2c6;
+            border-radius: 50%;
+            opacity: 0.4;
+            z-index: 0;
+        }
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -100px; right: -50px;
+            width: 400px; height: 400px;
+            background: #e2f0e4;
+            border-radius: 50%;
+            opacity: 0.6;
+            z-index: 0;
+        }
+
+        .spoken-text {
+            font-size: 1.15rem;
+            line-height: 1.8rem;
+            color: #1a202c;
+            font-weight: 600;
+        }
+        .stage-direction {
+            font-size: 0.95rem;
+            color: #718096;
+            font-style: italic;
+            background-color: #edf2f7;
+            padding: 0.6rem 1rem;
+            border-radius: 0.75rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+        .highlight {
+            color: #2f855a; /* Green text for variables */
+            font-weight: 800;
+            background-color: #e6ffed;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .card {
+            border-radius: 2rem;
+            background: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .section-badge {
+            display: inline-block;
+            background: #c6f6d5;
+            color: #22543d;
+            font-weight: 800;
+            padding: 0.4rem 1.2rem;
+            border-radius: 9999px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        #scriptContent {
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        #scriptContent.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Tombol Jadwal Melayang (Floating Button) -->
+    <button id="scheduleBtn" class="fixed top-4 right-4 z-40 bg-white/80 backdrop-blur-md text-green-700 font-bold px-4 py-2.5 rounded-full shadow-lg border border-green-200 hover:bg-green-50 hover:scale-105 transition-all flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+        </svg>
+        Jadwal Sesi
+    </button>
+
+    <!-- Modal Jadwal -->
+    <div id="scheduleModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <!-- Overlay -->
+        <div id="modalOverlay" class="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
+        
+        <!-- Modal Content -->
+        <div id="modalContent" class="bg-white rounded-3xl w-full max-w-md shadow-2xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[85vh] relative z-10">
+            <!-- Header Modal -->
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-green-50 rounded-t-3xl">
+                <div>
+                    <h3 class="text-xl font-bold text-green-900">Jadwal Presentasi</h3>
+                    <p class="text-sm text-green-600 font-medium mt-1">Moderator: Mr. Taqwa</p>
+                </div>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-700 bg-white hover:bg-gray-100 rounded-full p-2 shadow-sm transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Body Modal (Scrollable) -->
+            <div class="p-5 overflow-y-auto space-y-6 bg-gray-50/50 rounded-b-3xl">
+                <p class="text-xs text-center text-gray-500 bg-gray-100 py-1.5 rounded-full mb-2">💡 Klik nama siswa untuk memuat naskah</p>
+
+                <!-- Hari 1 -->
+                <div>
+                    <h4 class="font-bold text-green-800 border-b border-green-200 pb-1 mb-3">Senin, 9 November 2026</h4>
+                    <div class="space-y-2">
+                        <button onclick="selectStudentFromSchedule('Karen')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Karen Lintang Zhafira</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.3</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                13.30 - 14.00 WITA
+                            </div>
+                        </button>
+                        <button onclick="selectStudentFromSchedule('Fakhri')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Muhammad Fakhri Hammy</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.3</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                14.00 - 14.30 WITA
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hari 2 -->
+                <div>
+                    <h4 class="font-bold text-green-800 border-b border-green-200 pb-1 mb-3">Selasa, 10 November 2026</h4>
+                    <div class="space-y-2">
+                        <button onclick="selectStudentFromSchedule('Raisa')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Raisa Anindya</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.1</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                13.30 - 14.00 WITA
+                            </div>
+                        </button>
+                        <button onclick="selectStudentFromSchedule('Rava')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Rava Apriliany Wensen</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.1</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                14.00 - 14.30 WITA
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hari 3 -->
+                <div>
+                    <h4 class="font-bold text-green-800 border-b border-green-200 pb-1 mb-3">Rabu, 11 November 2026</h4>
+                    <div class="space-y-2">
+                        <button onclick="selectStudentFromSchedule('Raisya')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Raisya Nur Azkadina</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.2</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                08.15 - 08.45 WITA
+                            </div>
+                        </button>
+                        <button onclick="selectStudentFromSchedule('Rania')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Rania Rafhana Rawdha</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.2</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                08.45 - 09.15 WITA
+                            </div>
+                        </button>
+                        <button onclick="selectStudentFromSchedule('Razka')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Razka Fadhil Nurrohman</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.2</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                09.15 - 09.45 WITA
+                            </div>
+                        </button>
+                        <button onclick="selectStudentFromSchedule('Siti')" class="w-full text-left bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-green-400 hover:shadow-md transition-all group">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 group-hover:text-green-700">Siti Naura Azqia</span>
+                                <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">9.2</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                09.45 - 10.15 WITA
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section (Pencarian di Awal) -->
+    <header class="hero-bg min-h-[60vh] flex flex-col items-center justify-center px-4 py-12 relative">
+        <div class="relative z-10 w-full max-w-3xl flex flex-col items-center text-center">
+            
+            <div class="mb-8">
+                <span class="bg-white text-green-700 font-bold px-4 py-1 rounded-full shadow-sm text-sm tracking-wide">Mr. Taqwa Ridha</span>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-green-900 mt-4 leading-tight">Mutu Lulusan<br>Moderator Script</h1>
+                <p class="text-green-700 mt-3 font-medium">Tema: Unlocked Voices</p>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="w-full relative shadow-xl rounded-full">
+                <input type="text" id="searchInput" class="w-full pl-8 pr-16 py-5 rounded-full border-4 border-white bg-white/90 backdrop-blur-sm focus:outline-none focus:border-green-400 focus:bg-white text-xl text-gray-800 transition-all placeholder-gray-400" placeholder="Ketik nama siswa (Misal: Raisa)..." autocomplete="off">
+                <button class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-green-500 text-white p-3 rounded-full hover:bg-green-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Status Indicator -->
+            <div id="statusIndicator" class="mt-6 text-sm font-bold text-green-800 bg-white/60 px-6 py-2 rounded-full backdrop-blur-md opacity-0 transition-opacity duration-300">
+                Memilih siswa...
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content: Script -->
+    <main id="scriptContent" class="max-w-4xl mx-auto px-4 pb-24 -mt-8 relative z-20 space-y-8">
+        
+        <!-- Info Card (Schedule) -->
+        <div class="bg-white rounded-3xl p-6 shadow-lg border-2 border-green-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="bg-green-100 p-4 rounded-full text-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider">Presenter</p>
+                    <h2 id="infoName" class="text-2xl font-extrabold text-gray-800">-</h2>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-right">
+                <div><span class="text-gray-400 text-sm">Kelas</span> <br><span id="infoClass" class="font-bold text-gray-700">-</span></div>
+                <div><span class="text-gray-400 text-sm">Waktu</span> <br><span id="infoTime" class="font-bold text-gray-700">-</span></div>
+                <div class="col-span-2"><span class="text-gray-400 text-sm">Tanggal</span> <br><span id="infoDate" class="font-bold text-gray-700">-</span></div>
+            </div>
+        </div>
+
+        <!-- 1. Opening -->
+        <div class="card p-8">
+            <div class="section-badge">1. Opening & Self-Introduction</div>
+            <div class="space-y-5">
+                <p class="spoken-text">
+                    "Assalamu’alaikum Warahmatullahi Wabarakatuh. Good morning to the parents of <span class="highlight student-name">[Nama Murid]</span>. Welcome to Al Mazaya."
+                </p>
+                <div class="stage-direction">(Selamat pagi kepada orang tua dari <span class="student-name">[Nama Murid]</span>. Selamat datang di Al Mazaya).</div>
+                
+                <p class="spoken-text">
+                    "First of all, I want to say congratulations! <span class="highlight student-name">[Nama Murid]</span> is now in <span class="highlight student-pronoun">[his/her]</span> final year of Junior High School. We are all very proud to see <span class="highlight student-pronoun">[his/her]</span> progress."
+                </p>
+                <div class="stage-direction">(Pertama-tama, saya ingin mengucapkan selamat! <span class="student-name">[Nama Murid]</span> sekarang berada di tahun terakhir SMP. Kami semua sangat bangga melihat perkembangannya).</div>
+
+                <p class="spoken-text">
+                    "Please allow me to introduce myself. My name is Muhammad Taqwa Ridha. I am proud to be your moderator today."
+                </p>
+
+                <p class="spoken-text">
+                    "Today, we are having the Graduate Quality Presentation. The theme is 'Unlocked Voices'. This is a special time for <span class="highlight student-name">[Nama Murid]</span> to share <span class="highlight student-pronoun">[his/her]</span> experiences, memories, and future dreams with you."
+                </p>
+
+                <p class="spoken-text">
+                    "Before we start, let's open this session by reciting Basmalah together. <br><span class="text-green-700">Bismillahirrohmanirrohim.</span>"
+                </p>
+
+                <p class="spoken-text">
+                    "Now, let's welcome <span class="highlight student-name">[Nama Murid]</span> to start the presentation. <span class="highlight student-name">[Nama Murid]</span>, the time is yours."
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Presentasi -->
+        <div class="card p-8 bg-gray-50 border-dashed border-2 border-gray-300 shadow-none">
+            <div class="section-badge !bg-gray-200 !text-gray-700">2. Sesi Presentasi & Penilaian</div>
+            <div class="flex items-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <p class="text-gray-600 font-medium">Fokus mengamati dan menilai berdasarkan lembar rubrik (Penilaian PPT & Presentasi).</p>
+            </div>
+        </div>
+
+        <!-- 3. Q&A -->
+        <div class="card p-8">
+            <div class="section-badge !bg-blue-100 !text-blue-800">3. Q&A and Parent Appreciation</div>
+            <div class="space-y-5">
+                <div class="stage-direction">(Setelah murid selesai presentasi)</div>
+                
+                <p class="spoken-text">
+                    "Alright, thank you <span class="highlight student-name">[Nama Murid]</span>. That was a very good presentation! Let’s give a big round of applause for <span class="highlight student-name">[Nama Murid]</span>."
+                </p>
+                <div class="stage-direction">(Baik, terima kasih <span class="student-name">[Nama Murid]</span>. Presentasi yang sangat bagus! Mari berikan tepuk tangan yang meriah).</div>
+
+                <p class="spoken-text">
+                    "Now, it is time for the Questions and Answers session. For <span class="highlight student-name">[Nama Murid]</span>, please remain standing at the front."
+                </p>
+                <div class="stage-direction">(Sekarang, saatnya sesi Tanya Jawab. Untuk <span class="student-name">[Nama Murid]</span>, silakan tetap berdiri di depan).</div>
+                
+                <p class="spoken-text">
+                    "To the parents, we would love to hear from you. You can ask questions, give comments, or share your messages for <span class="highlight student-name">[Nama Murid]</span>. The time is yours."
+                </p>
+                <div class="stage-direction">(Untuk ayah dan ibu, kami sangat ingin mendengar tanggapannya. Waktu dipersilakan). <br><br>💬 Biarkan interaksi tanya jawab antara anak dan orang tua berlangsung.</div>
+            </div>
+        </div>
+
+        <!-- 4. Documentation -->
+        <div class="card p-8">
+            <div class="section-badge !bg-purple-100 !text-purple-800">4. Documentation (Sesi Foto)</div>
+            <div class="space-y-5">
+                <div class="stage-direction">(Setelah sesi tanya jawab selesai)</div>
+                
+                <p class="spoken-text">
+                    "Thank you so much to the parents of <span class="highlight student-name">[Nama Murid]</span> for your kind words and support."
+                </p>
+                <p class="spoken-text">
+                    "Before we finish, let’s take a picture together for documentation. For the parents, please kindly come to the front."
+                </p>
+                <div class="stage-direction">(Untuk ayah dan ibu, dengan hormat silakan maju ke depan).</div>
+                
+                <div class="stage-direction">(Sambil mengarahkan posisi berdiri)</div>
+                <p class="spoken-text">
+                    "<span class="highlight student-name">[Nama Murid]</span>, you can stand in the middle."
+                </p>
+
+                <div class="stage-direction">(Saat memegang kamera/HP bersiap memfoto)</div>
+                <p class="spoken-text text-xl">
+                    "Alright, look at the camera. Ready? I will take the picture in 3... 2... 1... smile! 📸"
+                </p>
+                <p class="spoken-text text-xl mt-2">
+                    "Let's take one more picture. 3... 2... 1... cheese! 📸"
+                </p>
+            </div>
+        </div>
+
+        <!-- 5. Closing -->
+        <div class="card p-8">
+            <div class="section-badge !bg-red-100 !text-red-800">5. Closing</div>
+            <div class="space-y-5">
+                <div class="stage-direction">(Setelah berfoto, arahkan mereka duduk kembali)</div>
+                <p class="spoken-text">
+                    "Thank you. For the parents, please have a seat."
+                </p>
+                <div class="stage-direction">(Tunggu orang tua duduk kembali, lalu tutup sesinya)</div>
+
+                <p class="spoken-text">
+                    "Alright, we are done with this session. Thank you again to the parents of <span class="highlight student-name">[Nama Murid]</span> for coming today. We wish <span class="highlight student-name">[Nama Murid]</span> all the best in the future."
+                </p>
+                <div class="stage-direction">(Baik, kita sudah selesai dengan sesi ini. Terima kasih sekali lagi kepada orang tua karena telah hadir hari ini. Kami mendoakan yang terbaik di masa depan).</div>
+
+                <p class="spoken-text">
+                    "Now, let's close this session by reciting Hamdalah together. <br><span class="text-green-700">Alhamdulillahirabbil'alamin.</span>"
+                </p>
+                
+                <p class="spoken-text">
+                    "Before we end this session, I apologize for any mistakes I might have made as your moderator today."
+                </p>
+                <div class="stage-direction">(Sebelum kita akhiri sesi ini, saya memohon maaf atas segala kekurangan saya sebagai moderator hari ini).</div>
+
+                <p class="spoken-text">
+                    "Our session has ended, <span class="highlight student-name">[Nama Murid]</span> and parents may leave the room. Wassalamu’alaikum Warahmatullahi Wabarakatuh. Thank you, have a nice day!"
+                </p>
+                <div class="stage-direction">(Sesi kita sudah berakhir, <span class="student-name">[Nama Murid]</span> dan Bapak/Ibu dipersilakan meninggalkan ruangan. Terima kasih, semoga hari Anda menyenangkan!).</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Database Siswa Mr Taqwa
+        const students = [
+            { name: "Karen Lintang Zhafira", class: "9.3", date: "Senin, 9 Nov 2026", time: "13.30 - 14.00", gender: "her", nick: "karen" },
+            { name: "Muhammad Fakhri Hammy", class: "9.3", date: "Senin, 9 Nov 2026", time: "14.00 - 14.30", gender: "his", nick: "fakhri" },
+            { name: "Raisa Anindya", class: "9.1", date: "Selasa, 10 Nov 2026", time: "13.30 - 14.00", gender: "her", nick: "raisa" },
+            { name: "Rava Apriliany Wensen", class: "9.1", date: "Selasa, 10 Nov 2026", time: "14.00 - 14.30", gender: "her", nick: "rava" },
+            { name: "Raisya Nur Azkadina", class: "9.2", date: "Rabu, 11 Nov 2026", time: "08.15 - 08.45", gender: "her", nick: "raisya" },
+            { name: "Rania Rafhana Rawdha", class: "9.2", date: "Rabu, 11 Nov 2026", time: "08.45 - 09.15", gender: "her", nick: "rania" },
+            { name: "Razka Fadhil Nurrohman", class: "9.2", date: "Rabu, 11 Nov 2026", time: "09.15 - 09.45", gender: "his", nick: "razka" },
+            { name: "Siti Naura Azqia", class: "9.2", date: "Rabu, 11 Nov 2026", time: "09.45 - 10.15", gender: "her", nick: "siti" }
+        ];
+
+        const searchInput = document.getElementById('searchInput');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const scriptContent = document.getElementById('scriptContent');
+        
+        const nameSpans = document.querySelectorAll('.student-name');
+        const pronounSpans = document.querySelectorAll('.student-pronoun');
+        
+        const infoName = document.getElementById('infoName');
+        const infoClass = document.getElementById('infoClass');
+        const infoDate = document.getElementById('infoDate');
+        const infoTime = document.getElementById('infoTime');
+        
+        // Elemen Modal
+        const scheduleBtn = document.getElementById('scheduleBtn');
+        const scheduleModal = document.getElementById('scheduleModal');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Fungsi Buka Tutup Modal
+        function openModal() {
+            scheduleModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalContent.classList.remove('opacity-0', 'scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.add('opacity-0');
+            modalContent.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                scheduleModal.classList.add('hidden');
+            }, 300);
+        }
+
+        scheduleBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', closeModal);
+
+        // Fungsi Pilih Siswa dari Modal
+        function selectStudentFromSchedule(name) {
+            closeModal();
+            searchInput.value = name;
+            // Memaksa event 'input' berjalan agar teks ter-update
+            searchInput.dispatchEvent(new Event('input'));
+        }
+
+        function updateScript(student) {
+            if(student) {
+                // Apply data
+                nameSpans.forEach(span => span.textContent = student.name);
+                pronounSpans.forEach(span => span.textContent = student.gender);
+                infoName.textContent = student.name;
+                infoClass.textContent = student.class;
+                infoDate.textContent = student.date;
+                infoTime.textContent = student.time;
+
+                // Show success status
+                statusIndicator.innerHTML = `✅ Jadwal <b>${student.name}</b> dimuat.`;
+                statusIndicator.style.opacity = '1';
+                statusIndicator.classList.replace('text-red-600', 'text-green-800');
+                statusIndicator.classList.replace('text-yellow-600', 'text-green-800');
+
+                // Activate content
+                scriptContent.classList.add('active');
+
+                // Smooth scroll to content after a tiny delay
+                setTimeout(() => {
+                    scriptContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 400);
+
+            } else {
+                // Reset data
+                nameSpans.forEach(span => span.textContent = "[Nama Murid]");
+                pronounSpans.forEach(span => span.textContent = "[his/her]");
+                infoName.textContent = "-";
+                infoClass.textContent = "-";
+                infoDate.textContent = "-";
+                infoTime.textContent = "-";
+
+                // Deactivate content
+                scriptContent.classList.remove('active');
+            }
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (query.length < 2) {
+                updateScript(null);
+                statusIndicator.style.opacity = '0';
+                return;
+            }
+
+            const matches = students.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.nick.toLowerCase().includes(query)
+            );
+
+            if (matches.length === 1) {
+                updateScript(matches[0]);
+            } else if (matches.length > 1) {
+                updateScript(null);
+                statusIndicator.innerHTML = `⚠️ Ada ${matches.length} nama mirip. Ketik lebih spesifik.`;
+                statusIndicator.style.opacity = '1';
+                statusIndicator.classList.replace('text-green-800', 'text-yellow-600');
+            } else {
+                updateScript(null);
+                statusIndicator.innerHTML = `❌ Siswa tidak ditemukan di jadwal Anda.`;
+                statusIndicator.style.opacity = '1';
+                statusIndicator.classList.replace('text-green-800', 'text-red-600');
+                statusIndicator.classList.replace('text-yellow-600', 'text-red-600');
+            }
+        });
+    </script>
+</body>
+</html>
